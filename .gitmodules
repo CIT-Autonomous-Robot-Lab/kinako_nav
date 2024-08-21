@@ -10,3 +10,6 @@
 [submodule "raspicat_slam_navigation"]
 	path = raspicat_slam_navigation
 	url = git@github.com:CIT-Autonomous-Robot-Lab/raspicat_slam_navigation.git
+[submodule "mcl_2d"]
+	path = mcl_2d
+	url = https://github.com/RyoFunai/mcl_2d.git
