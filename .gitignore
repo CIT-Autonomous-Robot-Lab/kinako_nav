@@ -1,0 +1,15 @@
+*.log
+
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+bin/
+logs/
+
+.vs/
+.vscode/
+
+build/
+install/
+log/
