@@ -13,3 +13,6 @@
 [submodule "mcl_2d"]
 	path = mcl_2d
 	url = https://github.com/RyoFunai/mcl_2d.git
+[submodule "navigation2"]
+	path = navigation2
+	url = https://github.com/RyoFunai/navigation2.git
