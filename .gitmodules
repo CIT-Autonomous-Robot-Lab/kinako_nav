@@ -16,3 +16,9 @@
 [submodule "navigation2"]
 	path = navigation2
 	url = https://github.com/RyoFunai/navigation2.git
+[submodule "emcl2_ros"]
+	path = emcl2_ros
+	url = git@github.com:RyoFunai/emcl2_ros.git
+[submodule "emcl2_ros2"]
+	path = emcl2_ros2
+	url = git@github.com:RyoFunai/emcl2_ros2.git
