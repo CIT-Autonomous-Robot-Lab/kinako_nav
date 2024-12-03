@@ -6,9 +6,6 @@
 #include <sensor_msgs/msg/laser_scan.hpp>
 #include <sensor_msgs/msg/imu.hpp>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
-#include <message_filters/subscriber.h>
-#include <message_filters/sync_policies/approximate_time.h>
-#include <mutex>
 #include <memory>
 #include <vector>
 #include <tuple>
@@ -29,20 +26,15 @@ namespace pointcloud_to_laserscan_with_imu
     ~PointCloudToLaserScanWithIMUNode();
 
   private:
-    // コールバック関数
-    void synchronizedCallback(
-        const sensor_msgs::msg::PointCloud2::ConstSharedPtr cloud_msg,
-        const sensor_msgs::msg::Imu::ConstSharedPtr imu_msg);
+    void imuCallback(const sensor_msgs::msg::Imu::ConstSharedPtr imu_msg);
     void cbPointCloud(const sensor_msgs::msg::PointCloud2::ConstSharedPtr msg);
 
-    // 変換関数
     std::shared_ptr<sensor_msgs::msg::LaserScan> convertPointCloudToLaserScan(
         const sensor_msgs::msg::PointCloud2::ConstSharedPtr &msg);
     std::shared_ptr<sensor_msgs::msg::LaserScan> convertPointCloudToLaserScanWithIMU(
         const sensor_msgs::msg::PointCloud2::ConstSharedPtr &msg,
         const sensor_msgs::msg::Imu::ConstSharedPtr &imu_msg);
 
-    // IMU関連関数
     double getYawFromIMU(const sensor_msgs::msg::Imu::ConstSharedPtr &imu_msg) const;
     tf2::Matrix3x3 createRotationMatrix(const sensor_msgs::msg::Imu::ConstSharedPtr &imu_msg) const;
 
@@ -63,19 +55,16 @@ namespace pointcloud_to_laserscan_with_imu
 
     rclcpp::Publisher<sensor_msgs::msg::LaserScan>::SharedPtr laser_scan_pub_;
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr processed_pointcloud_pub_;
-    rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr pointcloud_sub_;
 
-    // メッセージフィルター
-    typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::msg::PointCloud2, sensor_msgs::msg::Imu> SyncPolicy;
-    std::shared_ptr<message_filters::Subscriber<sensor_msgs::msg::PointCloud2>> cloud_sub_;
-    std::shared_ptr<message_filters::Subscriber<sensor_msgs::msg::Imu>> imu_sub_;
-    std::shared_ptr<message_filters::Synchronizer<SyncPolicy>> sync_;
+    rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr cloud_sub_;
+    rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr imu_sub_;
+
+    std::shared_ptr<const sensor_msgs::msg::Imu> latest_imu_msg_;
 
     std::string scan_frame_id_;
     double min_z_;
     double max_z_;
     int angle_increment_coefficient_;
-    std::mutex imu_mutex_;
   };
 
 } // namespace pointcloud_to_laserscan_with_imu

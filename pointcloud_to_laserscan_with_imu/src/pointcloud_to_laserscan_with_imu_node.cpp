@@ -1,13 +1,11 @@
 #include "pointcloud_to_laserscan_with_imu/pointcloud_to_laserscan_with_imu_node.h"
 
-
-
 namespace pointcloud_to_laserscan_with_imu
 {
 
   PointCloudToLaserScanWithIMUNode::PointCloudToLaserScanWithIMUNode()
       : Node("pointcloud_to_laserscan_with_imu_node"),
-        scan_frame_id_("laser_frame"),
+        scan_frame_id_("map"),
         min_z_(-0.2),
         max_z_(2.0),
         angle_increment_coefficient_(1)
@@ -24,36 +22,39 @@ namespace pointcloud_to_laserscan_with_imu
 
     laser_scan_pub_ = this->create_publisher<sensor_msgs::msg::LaserScan>("laser_scan", 10);
     processed_pointcloud_pub_ =
-        create_publisher<sensor_msgs::msg::PointCloud2>("processed_pointcloud", 2);
+        this->create_publisher<sensor_msgs::msg::PointCloud2>("processed_pointcloud", 2);
 
-    // メッセージフィルターの設定
-    cloud_sub_ = std::make_shared<message_filters::Subscriber<sensor_msgs::msg::PointCloud2>>(this, "/livox/lidar");
-    imu_sub_ = std::make_shared<message_filters::Subscriber<sensor_msgs::msg::Imu>>(this, "/livox/imu");
+    // IMUサブスクリプションの設定
+    imu_sub_ = this->create_subscription<sensor_msgs::msg::Imu>(
+        "/livox/imu", 10,
+        std::bind(&PointCloudToLaserScanWithIMUNode::imuCallback, this, std::placeholders::_1));
 
-    sync_ = std::make_shared<message_filters::Synchronizer<SyncPolicy>>(SyncPolicy(10), *cloud_sub_, *imu_sub_);
-    sync_->registerCallback(std::bind(&PointCloudToLaserScanWithIMUNode::synchronizedCallback, this, std::placeholders::_1, std::placeholders::_2));
+    // 点群サブスクリプションの設定
+    cloud_sub_ = this->create_subscription<sensor_msgs::msg::PointCloud2>(
+        "/livox/lidar", 10,
+        std::bind(&PointCloudToLaserScanWithIMUNode::cbPointCloud, this, std::placeholders::_1));
   }
 
   PointCloudToLaserScanWithIMUNode::~PointCloudToLaserScanWithIMUNode() {}
 
-  void PointCloudToLaserScanWithIMUNode::synchronizedCallback(
-      const sensor_msgs::msg::PointCloud2::ConstSharedPtr cloud_msg,
-      const sensor_msgs::msg::Imu::ConstSharedPtr imu_msg)
+  void PointCloudToLaserScanWithIMUNode::imuCallback(const sensor_msgs::msg::Imu::ConstSharedPtr imu_msg)
   {
-    auto laser_scan = convertPointCloudToLaserScanWithIMU(cloud_msg, imu_msg);
-    if (laser_scan)
-    {
-      laser_scan_pub_->publish(*laser_scan);
-    }
+    latest_imu_msg_ = imu_msg;
   }
 
   void PointCloudToLaserScanWithIMUNode::cbPointCloud(const sensor_msgs::msg::PointCloud2::ConstSharedPtr msg)
   {
-    // auto laser_scan = convertPointCloudToLaserScan(msg);
-    // if (laser_scan)
-    // {
-    //   laser_scan_pub_->publish(*laser_scan);
-    // }
+    if (!latest_imu_msg_)
+    {
+      RCLCPP_WARN(get_logger(), "IMUデータが利用可能ではありません。");
+      return;
+    }
+
+    auto laser_scan = convertPointCloudToLaserScanWithIMU(msg, latest_imu_msg_);
+    if (laser_scan)
+    {
+      laser_scan_pub_->publish(*laser_scan);
+    }
   }
 
   std::shared_ptr<sensor_msgs::msg::LaserScan> PointCloudToLaserScanWithIMUNode::convertPointCloudToLaserScan(
@@ -119,7 +120,6 @@ namespace pointcloud_to_laserscan_with_imu
       const sensor_msgs::msg::PointCloud2::ConstSharedPtr &msg,
       const sensor_msgs::msg::Imu::ConstSharedPtr &imu_msg)
   {
-    RCLCPP_INFO(get_logger(), "convertPointCloudToLaserScanWithIMU start");
     tf2::Matrix3x3 rot_matrix = createRotationMatrix(imu_msg);
     std::vector<std::tuple<float, float, float>> filtered_points;
 
@@ -143,7 +143,6 @@ namespace pointcloud_to_laserscan_with_imu
     }
 
     publishProcessedPointCloud(msg->header, filtered_points);
-    RCLCPP_INFO(get_logger(), "convertPointCloudToLaserScanWithIMU end");
 
     return buildLaserScan(msg->header, filtered_points);
   }
@@ -172,6 +171,8 @@ namespace pointcloud_to_laserscan_with_imu
 
     tf2::Matrix3x3 rot_matrix;
     rot_matrix.setRPY(roll, pitch, 0.0);
+    RCLCPP_INFO(get_logger(), "imu_msg->orientation.x: %f, imu_msg->orientation.y: %f, imu_msg->orientation.z: %f", imu_msg->orientation.x, imu_msg->orientation.y, imu_msg->orientation.z);
+    RCLCPP_INFO(get_logger(), "createRotationMatrix: %f, %f, %f", roll * 180 / M_PI, pitch * 180 / M_PI, _ * 180 / M_PI);
     return rot_matrix;
   }
 
