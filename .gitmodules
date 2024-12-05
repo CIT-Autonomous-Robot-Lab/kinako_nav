@@ -22,3 +22,9 @@
 [submodule "emcl2_ros2"]
 	path = emcl2_ros2
 	url = git@github.com:RyoFunai/emcl2_ros2.git
+[submodule "map_manager"]
+	path = map_manager
+	url = https://github.com/CIT-Autonomous-Robot-Lab/map_manager.git
+[submodule "pointcloud_to_dual_laserscan"]
+	path = pointcloud_to_dual_laserscan
+	url = https://github.com/CIT-Autonomous-Robot-Lab/pointcloud_to_dual_laserscan.git
